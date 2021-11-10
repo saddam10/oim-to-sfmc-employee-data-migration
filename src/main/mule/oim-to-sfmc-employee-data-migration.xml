@@ -35,7 +35,7 @@ http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mu
 			doc:id="0db903d3-31e5-45ff-9083-c99a305deaa8"
 			key="lastUpdatedDateTime"
 			target="lastUpdatedDateTime" objectStore="Object_Store">
-			<os:default-value><![CDATA[#[(now()- |P2Y| ) as DateTime as String {format: "yyyy-MM-dd HH:mm:ss"}]]]></os:default-value>
+			<os:default-value><![CDATA[#[((now() >> "IST")- |P2Y| ) as DateTime as String {format: "yyyy-MM-dd HH:mm:ss"}]]]></os:default-value>
 		</os:retrieve>
 		<logger
 			level="INFO"
@@ -46,7 +46,7 @@ http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mu
 			doc:name="StoreLastUpdatedDateTime"
 			doc:id="ddd8caa8-ebf2-451d-9863-1dac11f3fd3a"
 			key="lastUpdatedDateTime" objectStore="Object_Store">
-			<os:value><![CDATA[#[now() as DateTime as String {format: 'yyyy-MM-dd HH:mm:ss'}]]]></os:value>
+			<os:value><![CDATA[#[(now() >> "IST") as DateTime as String {format: 'yyyy-MM-dd HH:mm:ss'}]]]></os:value>
 		</os:store>
 		<http:request
 			method="GET"
