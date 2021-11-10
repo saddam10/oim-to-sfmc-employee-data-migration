@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+"
+>
+	<flow
+		name="oim-to-sfmc-scheduler-process"
+		doc:id="35fe32ac-2f22-47c4-bade-e64c3cf76822"
+	initialState="started">
+		<scheduler
+			doc:name="Scheduler"
+			doc:id="b956f44b-2680-4e6c-9dae-c555893c216d"
+		>
+			<scheduling-strategy>
+				<fixed-frequency
+					timeUnit="SECONDS"
+					frequency="${scheduler.frequency}" />
+			</scheduling-strategy>
+		</scheduler>
+		<os:retrieve
+			doc:name="RetrieveLastUpdatedDateTime"
+			doc:id="0db903d3-31e5-45ff-9083-c99a305deaa8"
+			key="lastUpdatedDateTime"
+			target="lastUpdatedDateTime" objectStore="Object_Store">
+			<os:default-value><![CDATA[#[((now() >> "IST")- |P2Y| ) as DateTime as String {format: "yyyy-MM-dd HH:mm:ss"}]]]></os:default-value>
+		</os:retrieve>
+		<logger
+			level="INFO"
+			doc:name="LogLastUpdatedDateTime"
+			doc:id="1abc131c-284c-4f91-b192-08a8c29ff04c"
+			message='#["LastUpdatedDateTime : " ++ vars.lastUpdatedDateTime]' />
+		<os:store
+			doc:name="StoreLastUpdatedDateTime"
+			doc:id="ddd8caa8-ebf2-451d-9863-1dac11f3fd3a"
+			key="lastUpdatedDateTime" objectStore="Object_Store">
+			<os:value><![CDATA[#[(now() >> "IST") as DateTime as String {format: 'yyyy-MM-dd HH:mm:ss'}]]]></os:value>
+		</os:store>
+		<http:request
+			method="GET"
+			doc:name="CallOimApi"
+			doc:id="a8167b4e-6d64-4f71-9d12-e05f320ba316"
+			config-ref="OIM_Request_Conf"
+			path="${oim.path}"
+			responseTimeout="${oim.response-timeout}"
+		>
+			<reconnect
+				frequency="${oim.reconnection-strategy-frequency-ms}"
+				count="${oim.reconnection-strategy-attempts}" />
+			<http:response-validator>
+				<http:success-status-code-validator values="${oim.success-response-validator-values}" />
+			</http:response-validator>
+		</http:request>
+		<logger
+			level="INFO"
+			doc:name="LogOimApiResponse"
+			doc:id="98a485f4-b312-4679-88f0-117efa561723"
+			message="#[payload]" />
+		<ee:transform
+			doc:name="SfmcRequestPayload"
+			doc:id="435241e7-48f7-4299-a01d-f1f38c300b5e"
+		>
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload filter ((item, index) -> (item.LastUpdatedDateTime as DateTime as String {
+	format: 'yyyy-MM-dd HH:mm:ss'
+} > 
+	vars.lastUpdatedDateTime)) map ((item, index) ->   {
+	"Country__c": item.Country,
+	"First_Name__c": item.FirstName,
+	"MobileNumber__c": item.MobileNumber,
+	"Gender__c": item.Gender,
+	"EmailID__c": item.EmailID,
+	"State__c": item.State,
+	"Designation__c": item.Designation,
+	"EmployeeID__c": item.EmployeeID,
+	"LastName__c": item.LastName
+} )]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<choice
+			doc:name="Choice"
+			doc:id="eaf4ff94-2a42-4e2b-8940-e04b66b9f961"
+		>
+			<when expression="#[not isEmpty(payload)]">
+				<logger
+					level="INFO"
+					doc:name="LogSfmcRequestPayload"
+					doc:id="0d6ef3ff-b202-4625-b748-a5bc57ebb3f4"
+					message="#[payload]" />
+				<http:request
+					method="POST"
+					doc:name="CallSfmcApi"
+					doc:id="2096b507-6630-4ad4-ae44-d8e75e9cb744"
+					config-ref="SFMC_Request_Conf"
+					path="${sfmc.path}"
+					responseTimeout="${sfmc.response-timeout}"
+				>
+					<reconnect
+						frequency="${sfmc.reconnection-strategy-frequency-ms}"
+						count="${sfmc.reconnection-strategy-attempts}" />
+					<http:response-validator>
+						<http:success-status-code-validator values="${sfmc.success-response-validator-values}" />
+					</http:response-validator>
+				</http:request>
+				<logger
+					level="INFO"
+					doc:name="LogSfmcApiResponse"
+					doc:id="ac928aa0-b001-40b6-8e2f-4c937ad1b779"
+					message="#[payload]" />
+			</when>
+			<otherwise>
+				<logger
+					level="INFO"
+					doc:name="LogNoUpdateMessage"
+					doc:id="9315d678-99aa-420a-b03a-a02eb6134720"
+					message="No new records inserted/updated into Salesforce" />
+			</otherwise>
+		</choice>
+		<error-handler>
+			<on-error-continue
+				enableNotifications="true"
+				logException="true"
+				doc:name="On Error Continue"
+				doc:id="8180e865-b2aa-484a-9e05-99774a690bac"
+			>
+				<ee:transform
+					doc:name="Transform Message"
+					doc:id="9920513a-fb42-4fb1-9508-3007331b19e1"
+				>
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: error.errorMessage,
+	description: error.description,
+	errorType : error.errorType.identifier
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger
+					level="INFO"
+					doc:name="LogErrorMessage"
+					doc:id="70c91263-035a-4010-8847-eea25e7219b2"
+					message="#[payload]" />
+			</on-error-continue>
+		</error-handler>
+	</flow>
+	<flow
+		name="fetch-employee-data-from-oim"
+		doc:id="5bb99f4f-4cff-4842-b940-4bbc095b6fdd"
+	>
+		<http:listener
+			doc:name="OimApiListener"
+			doc:id="e65019f5-6611-4d41-a980-8ab09d6d93bb"
+			config-ref="HTTP_Listener_Config"
+			path="${oim.path}"
+			allowedMethods="GET"
+		>
+			<http:response statusCode="#[vars.httpStatus default 200]" />
+		</http:listener>
+		<db:select
+			doc:name="FetchEmployeeData"
+			doc:id="b0767ee8-876b-460c-88bb-8a15b51d7c6b"
+			config-ref="Database-Config"
+			queryTimeout="${oim.query-timeout-sec}"
+		>
+			<reconnect
+				frequency="${oim.reconnection-strategy-frequency-ms}"
+				count="${oim.reconnection-strategy-attempts}" />
+			<db:sql><![CDATA[SELECT * FROM Employees]]></db:sql>
+		</db:select>
+		<ee:transform
+			doc:name="JavaToJsonPayload"
+			doc:id="72027042-26df-4079-8286-0e98fa585acc"
+		>
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger
+			level="INFO"
+			doc:name="LogOimApiResponsePayload"
+			doc:id="4d383017-da3f-498a-907a-90354e8fc864"
+			message="#[payload]" />
+		<error-handler>
+			<on-error-continue
+				enableNotifications="true"
+				logException="true"
+				doc:name="On Error Continue"
+				doc:id="ffdd44ae-c4ae-4720-b034-be09dd0c2e41"
+			>
+				<ee:transform
+					doc:name="Transform Message"
+					doc:id="a9cdd5a1-7b4f-4e20-8849-3af9435f46f8"
+				>
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: error.errorMessage,
+	description: error.description,
+	errorType : error.errorType.identifier
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="httpStatus"><![CDATA[500]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<logger
+					level="INFO"
+					doc:name="LogErrorMessage"
+					doc:id="09a8edf9-84ad-4e15-ad1b-68a16b128230"
+					message="#[payload]" />
+			</on-error-continue>
+		</error-handler>
+	</flow>
+	<flow
+		name="upsert-sfmc-employee-record"
+		doc:id="b2f475f2-385a-47f0-b3fe-4bdc3bed1b09"
+	>
+		<http:listener
+			doc:name="SfmcApiListener"
+			doc:id="35d8ef61-6670-45d5-97b6-eb830adca72e"
+			config-ref="HTTP_Listener_Config"
+			path="${sfmc.path}"
+			allowedMethods="POST"
+		>
+			<http:response statusCode="#[vars.httpStatus default 201]" />
+		</http:listener>
+		<logger
+			level="INFO"
+			doc:name="LogSfmcApiRequest"
+			doc:id="59e1501c-0497-4cf6-b60c-4c05ea1145d3"
+			message="#[payload]" />
+		<salesforce:upsert
+			doc:name="UpsertDataToSfmc"
+			doc:id="f88fce12-613d-4a88-9c9c-fe93d3677fe6"
+			config-ref="Salesforce_Config"
+			objectType="Employee__c"
+			externalIdFieldName="EmployeeID__c"
+			readTimeout="${sfmc.read-timeout-sec}"
+			readTimeoutUnit="SECONDS"
+		>
+			<reconnect
+				frequency="${sfmc.reconnection-strategy-frequency-ms}"
+				count="${sfmc.reconnection-strategy-attempts}" />
+		</salesforce:upsert>
+		<ee:transform
+			doc:name="Transform Message"
+			doc:id="ae870709-a4a4-4255-bdfd-c7353cbcd2a2"
+		>
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger
+			level="INFO"
+			doc:name="LogSfmcApiResponse"
+			doc:id="6ecb2a61-b27b-45b8-adda-27d5ce883b65"
+			message="#[payload]" />
+		<error-handler>
+			<on-error-continue
+				enableNotifications="true"
+				logException="true"
+				doc:name="On Error Continue"
+				doc:id="5e9bd7c8-c00a-4440-af18-a03f449e1084"
+			>
+				<ee:transform
+					doc:name="Transform Message"
+					doc:id="cc055d74-0f6a-4f02-8eba-f93ea1023b19"
+				>
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: error.errorMessage,
+	description: error.description,
+	errorType : error.errorType.identifier
+}]]></ee:set-payload>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="httpStatus"><![CDATA[500]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<logger
+					level="INFO"
+					doc:name="LogErrorMessage"
+					doc:id="c024efe9-2de7-4f60-9795-5ecc7e852a42"
+					message="#[payload]" />
+			</on-error-continue>
+		</error-handler>
+	</flow>
+</mule>
