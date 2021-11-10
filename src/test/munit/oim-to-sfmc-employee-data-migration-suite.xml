@@ -1,0 +1,462 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit"
+	xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd"
+>
+	<munit:config name="oim-to-sfmc-employee-data-migration-suite.xml" />
+	<munit:test
+		name="oim-to-sfmc-scheduler-process-test"
+		doc:id="0a646684-053b-416b-917f-eefc4963c84f"
+	>
+		<munit:behavior>
+			<munit-tools:mock-when
+				doc:name="Mock CallOimApi"
+				doc:id="20bd81e9-f124-4ace-a50d-f7ab1d59ab80"
+				processor="http:request"
+			>
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute
+						whereValue="a8167b4e-6d64-4f71-9d12-e05f320ba316"
+						attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload
+						value="#[output application/json --- readUrl('classpath://oimtosfmcschedulerprocesstest\mock_payload.dwl')]"
+						mediaType="application/json"
+						encoding="UTF-8" />
+					<munit-tools:attributes value="#[readUrl('classpath://oimtosfmcschedulerprocesstest\mock_attributes.dwl')]" />
+					<munit-tools:variables>
+						<munit-tools:variable
+							key="lastUpdatedDateTime"
+							value="#[output application/java --- readUrl('classpath://oimtosfmcschedulerprocesstest\mock_variable_.dwl')]"
+							mediaType="application/java"
+							encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when
+				doc:name="Mock CallSfmcApi"
+				doc:id="ea0ba234-c7b4-4491-9629-4d28bad1b850"
+				processor="http:request"
+			>
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute
+						whereValue="2096b507-6630-4ad4-ae44-d8e75e9cb744"
+						attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload
+						value="#[output application/json --- readUrl('classpath://oimtosfmcschedulerprocesstest\mock_payload1.dwl')]"
+						mediaType="application/json"
+						encoding="UTF-8" />
+					<munit-tools:attributes value="#[readUrl('classpath://oimtosfmcschedulerprocesstest\mock_attributes1.dwl')]" />
+					<munit-tools:variables>
+						<munit-tools:variable
+							key="lastUpdatedDateTime"
+							value="#[output application/java --- readUrl('classpath://oimtosfmcschedulerprocesstest\mock_variable_1.dwl')]"
+							mediaType="application/java"
+							encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit:set-event
+				doc:name="Set Input"
+				doc:id="f58ca374-716d-440d-bc87-2eea7abaaa18"
+			>
+				<munit:payload value="#[readUrl('classpath://oimtosfmcschedulerprocesstest\set-event_payload.dwl')]" />
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution>
+			<flow-ref
+				doc:name="Flow-ref to oim-to-sfmc-scheduler-process"
+				doc:id="dc075296-4d7c-475d-a90a-7e6690b1e6f0"
+				name="oim-to-sfmc-scheduler-process" />
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert
+				doc:name="Assert payload"
+				doc:id="23be1cbe-75c5-41b8-b8b8-33a2704744b0"
+				message="The payload does not match"
+			>
+				<munit-tools:that><![CDATA[#[%dw 2.0
+import oimtosfmcschedulerprocesstest::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+			<munit-tools:verify-call
+				doc:name="Verify RetrieveLastUpdatedDateTime"
+				doc:id="be6cd7d0-685f-4470-a342-dfdefb8d0e6d"
+				processor="os:retrieve"
+				times="1"
+			>
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute
+						whereValue="0db903d3-31e5-45ff-9083-c99a305deaa8"
+						attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call
+				doc:name="Verify LogLastUpdatedDateTime"
+				doc:id="35749988-64a5-4b5c-b312-bce40b911eb4"
+				processor="logger"
+				times="1"
+			>
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute
+						whereValue="1abc131c-284c-4f91-b192-08a8c29ff04c"
+						attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call
+				doc:name="Verify StoreLastUpdatedDateTime"
+				doc:id="38cf25f5-913d-4c0f-abc5-5f9f8569073f"
+				processor="os:store"
+				times="1"
+			>
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute
+						whereValue="ddd8caa8-ebf2-451d-9863-1dac11f3fd3a"
+						attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call
+				doc:name="Verify LogOimApiResponse"
+				doc:id="45d55a9a-0a4f-4986-bc32-b06d939a4a9d"
+				processor="logger"
+				times="1"
+			>
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute
+						whereValue="98a485f4-b312-4679-88f0-117efa561723"
+						attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call
+				doc:name="Verify SfmcRequestPayload"
+				doc:id="db981524-2070-4dfc-8437-aa591bc9c155"
+				processor="ee:transform"
+				times="1"
+			>
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute
+						whereValue="435241e7-48f7-4299-a01d-f1f38c300b5e"
+						attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call
+				doc:name="Verify LogSfmcApiResponse"
+				doc:id="bf7a2420-f036-4ee4-87f5-f9bd5fb04d4d"
+				processor="logger"
+				times="1"
+			>
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute
+						whereValue="ac928aa0-b001-40b6-8e2f-4c937ad1b779"
+						attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call
+				doc:name="Verify LogSfmcRequestPayload"
+				doc:id="74633fcb-d0c9-42b6-afc6-8dbd07b97779"
+				processor="logger"
+				times="1"
+			>
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute
+						whereValue="0d6ef3ff-b202-4625-b748-a5bc57ebb3f4"
+						attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test
+		name="fetch-employee-data-from-oim-test"
+		doc:id="fb4beaa3-b04b-44b3-aa0f-f8e67fd087aa"
+	>
+		<munit:behavior>
+			<munit-tools:mock-when
+				doc:name="Mock FetchEmployeeData"
+				doc:id="74fd5020-ccb6-499a-a220-c3bfbea377a8"
+				processor="db:select"
+			>
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute
+						whereValue="b0767ee8-876b-460c-88bb-8a15b51d7c6b"
+						attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload
+						value="#[output application/java --- readUrl('classpath://fetchemployeedatafromoimtest\mock_payload.dwl')]"
+						mediaType="application/java"
+						encoding="UTF-8" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit:set-event
+				doc:name="Set Input"
+				doc:id="38c6bce0-8507-4cc0-98d0-996a88f74424"
+			>
+				<munit:payload
+					value="#[readUrl('classpath://fetchemployeedatafromoimtest\set-event_payload.dwl')]"
+					encoding="UTF-8" />
+				<munit:attributes value="#[readUrl('classpath://fetchemployeedatafromoimtest\set-event_attributes.dwl')]" />
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution>
+			<flow-ref
+				doc:name="Flow-ref to fetch-employee-data-from-oim"
+				doc:id="3707f16e-59e5-421e-a663-154c03f610ca"
+				name="fetch-employee-data-from-oim" />
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert
+				doc:name="Assert payload"
+				doc:id="752ec83f-4d36-4eb8-92aa-72a335ba7795"
+				message="The payload does not match"
+			>
+				<munit-tools:that><![CDATA[#[%dw 2.0
+import fetchemployeedatafromoimtest::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+			<munit-tools:verify-call
+				doc:name="Verify JavaToJsonPayload"
+				doc:id="385250bf-14c9-4f4f-b843-a836cbe82079"
+				processor="ee:transform"
+				times="1"
+			>
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute
+						whereValue="72027042-26df-4079-8286-0e98fa585acc"
+						attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call
+				doc:name="Verify LogOimApiResponsePayload"
+				doc:id="afe1b8b9-66a6-4eed-ab8d-395bed980573"
+				processor="logger"
+				times="1"
+			>
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute
+						whereValue="4d383017-da3f-498a-907a-90354e8fc864"
+						attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test
+		name="upsert-sfmc-employee-record-test"
+		doc:id="282c519d-03bf-41cf-8db6-5e15432316c3"
+	>
+		<munit:behavior>
+			<munit-tools:mock-when
+				doc:name="Mock UpsertDataToSfmc"
+				doc:id="09b90a76-d3be-4aab-aafe-a1df04c60ba7"
+				processor="salesforce:upsert"
+			>
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute
+						whereValue="f88fce12-613d-4a88-9c9c-fe93d3677fe6"
+						attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload
+						value="#[output application/java --- readUrl('classpath://upsertsfmcemployeerecordtest\mock_payload.dwl')]"
+						mediaType="application/java"
+						encoding="UTF-8" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit:set-event
+				doc:name="Set Input"
+				doc:id="cebd09e2-ae10-45d1-9a65-fe37c0b30272"
+			>
+				<munit:payload
+					value="#[output application/json --- readUrl('classpath://upsertsfmcemployeerecordtest\set-event_payload.dwl')]"
+					encoding="UTF-8"
+					mediaType="application/json" />
+				<munit:attributes value="#[readUrl('classpath://upsertsfmcemployeerecordtest\set-event_attributes.dwl')]" />
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution>
+			<flow-ref
+				doc:name="Flow-ref to upsert-sfmc-employee-record"
+				doc:id="9c1ad5aa-dec3-433e-bce3-843a50c16f24"
+				name="upsert-sfmc-employee-record" />
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert
+				doc:name="Assert payload"
+				doc:id="e303afd1-1118-43b5-8e0a-5630581fc561"
+				message="The payload does not match"
+			>
+				<munit-tools:that><![CDATA[#[%dw 2.0
+import upsertsfmcemployeerecordtest::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+			<munit-tools:verify-call
+				doc:name="Verify LogSfmcApiRequest"
+				doc:id="68a0b521-5fd3-48ae-acad-44004cee5f5d"
+				processor="logger"
+				times="1"
+			>
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute
+						whereValue="59e1501c-0497-4cf6-b60c-4c05ea1145d3"
+						attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call
+				doc:name="Verify LogSfmcApiResponse"
+				doc:id="ca818b7f-4d90-4c25-bb09-0bc17cecbd76"
+				processor="logger"
+				times="1"
+			>
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute
+						whereValue="6ecb2a61-b27b-45b8-adda-27d5ce883b65"
+						attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call
+				doc:name="Verify Transform Message"
+				doc:id="79ad2d92-20bb-4b2b-96c4-f8d9748c23b1"
+				processor="ee:transform"
+				times="1"
+			>
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute
+						whereValue="ae870709-a4a4-4255-bdfd-c7353cbcd2a2"
+						attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test
+		name="oim-api-connectivity-error-test"
+		description="connectivity error"
+	>
+		<munit:behavior>
+			<munit-tools:mock-when
+				processor="http:request"
+				doc:name="Mock CallOimApi"
+			>
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute
+						whereValue="a8167b4e-6d64-4f71-9d12-e05f320ba316"
+						attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload
+						value="#[output application/java --- {}]"
+						mediaType="application/json"
+						encoding="UTF-8" />
+					<munit-tools:error typeId="HTTP:CONNECTIVITY" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution>
+			<flow-ref
+				name="oim-to-sfmc-scheduler-process"
+				doc:id="98326952-d6a7-4891-993f-31b51e723ae6"
+				doc:name="Flow-ref to oim-to-sfmc-scheduler-process" />
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:verify-call
+				processor="ee:transform"
+				atLeast="1"
+				doc:name="Verify CallToErrorProcessors"
+			>
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute
+						whereValue="9920513a-fb42-4fb1-9508-3007331b19e1"
+						attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test
+		name="oim-database-connectivity-error-test"
+		description="database connectivity error"
+	>
+		<munit:behavior>
+			<munit-tools:mock-when
+				processor="db:select"
+				doc:name="Mock FetchEmployeeData"
+			>
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="b0767ee8-876b-460c-88bb-8a15b51d7c6b" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/java --- []]" mediaType="application/json" encoding="UTF-8" />
+					<munit-tools:error typeId="DB:CONNECTIVITY" />
+				</munit-tools:then-return>
+			
+</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution>
+			<flow-ref
+				name="fetch-employee-data-from-oim"
+				doc:id="9d9dc3e6-39c8-4b0a-abe6-cef0b482c1d3"
+				doc:name="Flow-ref to fetch-employee-data-from-oim" />
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:verify-call
+				processor="ee:transform"
+				atLeast="1"
+				doc:name="Verify CallToErrorProcessors"
+			>
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="a9cdd5a1-7b4f-4e20-8849-3af9435f46f8" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+
+	<munit:test
+		name="sfmc-connectivity-error-test"
+		description="connectivity error"
+	>
+		<munit:behavior>
+			<munit-tools:mock-when
+				processor="salesforce:upsert"
+				doc:name="Mock UpsertDataToSfmc"
+			>
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="f88fce12-613d-4a88-9c9c-fe93d3677fe6" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/java --- []]" mediaType="application/java" encoding="UTF-8" />
+					<munit-tools:error typeId="SALESFORCE:CONNECTIVITY" />
+				</munit-tools:then-return>
+			
+</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution>
+			<flow-ref
+				name="upsert-sfmc-employee-record"
+				doc:id="3e2522da-4460-40e3-be7a-90203f8d2f07"
+				doc:name="Flow-ref to upsert-sfmc-employee-record" />
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:verify-call
+				processor="ee:transform"
+				atLeast="1"
+				doc:name="Verify CallToErrorProcessors"
+			>
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="cc055d74-0f6a-4f02-8eba-f93ea1023b19" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+</mule>

@@ -1,0 +1,46 @@
+http:
+  port: "8081"
+  host: "localhost"
+
+
+db:
+  host: "sql6.freemysqlhosting.net"
+  port: "3306"
+  username: "sql6447382" 
+  password: "qBqewZ1CGl"
+  database-name: "sql6447382"
+
+  
+scheduler:
+  frequency: "600" 
+  
+# frequency is in seconds  
+
+objectStore:
+  max-entries: "2"
+  entry-ttl: "180"
+  expiration-interval: "90"
+  
+# expirationInterval and entryTtl are in minutes
+
+oim:
+  api-timeout: "30000"
+  success-response-validator-values: "200"
+  response-timeout: "20000"
+  path: "/api/v1/fetch-data-from-oim"
+  reconnection-strategy-frequency-ms : "2000"
+  reconnection-strategy-attempts : "2"
+  query-timeout-sec : "10"
+  
+sfmc:
+  username: "saddam2101@api.com"
+  password: "@Force1011"
+  security-token: "NylfNCCHcNQvPISC7h8SNyUx"
+  api-timeout: "30000"
+  success-response-validator-values: "200,201"
+  response-timeout: "20000"
+  path: "api/v1/upsert-sfmc-employee-record"
+  reconnection-strategy-frequency-ms : "2000"
+  reconnection-strategy-attempts : "2"
+  read-timeout-sec : "10"
+  

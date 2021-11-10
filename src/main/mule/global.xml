@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+
+http://www.mulesoft.org/schema/mule/http 
+http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/db 
+http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd 
+http://www.mulesoft.org/schema/mule/core 
+http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core 
+http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/os 
+http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/salesforce 
+http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd"
+>   
+   	<salesforce:sfdc-config
+		name="Salesforce_Config"
+		doc:name="Salesforce Config"
+		doc:id="0f11009b-94de-45b6-822c-c28eaf6c044b"
+	>
+		<salesforce:basic-connection
+			username="${sfmc.username}"
+			password="${sfmc.password}"
+			securityToken="${sfmc.security-token}" />
+	</salesforce:sfdc-config>
+
+ 	<os:object-store
+		name="Object_Store"
+		doc:name="Object store"
+		doc:id="36d5371b-eb78-4605-b4fd-775ea6a49a33"
+		maxEntries="${objectStore.max-entries}"
+		entryTtl="${objectStore.entry-ttl}"
+		entryTtlUnit="MINUTES"
+		expirationInterval="${objectStore.expiration-interval}" />
+	<http:request-config
+		name="SFMC_Request_Conf"
+		doc:name="HTTP Request configuration"
+		doc:id="bc45b532-00be-4db9-8e7e-ec21b91497dc"
+	>
+		<http:request-connection
+			host="${http.host}"
+			port="${http.port}" />
+	</http:request-config>
+	<db:config
+		name="Database-Config"
+		doc:name="Database Config"
+		doc:id="d59b42cb-c6e6-44b0-9309-a4da9534f941"
+	>
+		<db:my-sql-connection
+			host="${db.host}"
+			port="${db.port}"
+			user="${db.username}"
+			password="${db.password}"
+			database="${db.database-name}" />
+	</db:config>
+	<configuration-properties
+		doc:name="Configuration properties"
+		doc:id="fc0d6b77-df9b-4f0b-9409-7d9fb13b3dba"
+		file="dev.yaml" />
+	<http:listener-config
+		name="HTTP_Listener_Config"
+		doc:name="HTTP Listener config"
+		doc:id="77738770-9288-42f6-9a2b-7a206839c167"
+	>
+		<http:listener-connection
+			host="${http.host}"
+			port="${http.port}" />
+	</http:listener-config>
+	<http:request-config
+		name="OIM_Request_Conf"
+		doc:name="HTTP Request configuration"
+		doc:id="425c99f3-bab1-4185-b78a-fff673165cd2"
+	>
+		<http:request-connection
+			host="${http.host}"
+			port="${http.port}" />
+	</http:request-config>
+</mule>
